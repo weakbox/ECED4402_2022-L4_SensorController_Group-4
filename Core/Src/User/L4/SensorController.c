@@ -24,7 +24,6 @@
 QueueHandle_t Queue_Sensor_Data;
 QueueHandle_t Queue_HostPC_Data;
 
-
 static void ResetMessageStruct(struct CommMessage* currentRxMessage){
 
 	static const struct CommMessage EmptyMessage = {0};
@@ -36,7 +35,19 @@ This task is created from the main.
 ******************************************************************************/
 void SensorControllerTask(void *params)
 {
+	int Host_PC_Buffer;
+
 	do {
+		// Recieve command from Host PC
+		if (xQueueReceive(Queue_HostPC_Data, &Host_PC_Buffer, 0))
+		{
+			if (Host_PC_Buffer)
+			{
+				print_str("Got something\r\n");
+			}
+		}
+
+
 		vTaskDelay(1000 / portTICK_RATE_MS);
 	} while(1);
 }

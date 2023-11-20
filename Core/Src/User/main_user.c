@@ -25,15 +25,15 @@
 #define SENSORPLATFORM_MODE 0
 #define SENSORCONTROLLER_MODE 1
 
-#define CODE_MODE SENSORPLATFORM_MODE
+#define CODE_MODE SENSORCONTROLLER_MODE
 
 void main_user(){
 	util_init();
 
-	// Print string to console to ensure we have established a proper connection with PuTTY.
-	char ibuff[64];
-	sprintf(ibuff,"ECED4402 Remote Underwater Sensor Controller\r\n");
-	print_str(ibuff);
+	// Print string to console to ensure we have established a proper connection with PuTTY
+	char buffer[64];
+	sprintf(buffer,"ECED4402 Remote Underwater Sensor Controller\r\n");
+	print_str(buffer);
 
 	initialize_sensor_datalink();
 
