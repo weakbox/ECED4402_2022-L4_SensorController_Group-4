@@ -30,6 +30,11 @@
 void main_user(){
 	util_init();
 
+	// Print string to console to ensure we have established a proper connection with PuTTY.
+	char ibuff[64];
+	sprintf(ibuff,"ECED4402 Remote Underwater Sensor Controller\r\n");
+	print_str(ibuff);
+
 	initialize_sensor_datalink();
 
 #if CODE_MODE == SENSORCONTROLLER_MODE
