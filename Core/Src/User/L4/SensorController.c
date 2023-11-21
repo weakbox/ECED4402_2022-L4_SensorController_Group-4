@@ -21,7 +21,6 @@
 #include "Timers.h"
 #include "semphr.h"
 
-
 QueueHandle_t Queue_Sensor_Data;
 QueueHandle_t Queue_HostPC_Data;
 
@@ -36,63 +35,32 @@ This task is created from the main.
 ******************************************************************************/
 void SensorControllerTask(void *params)
 {
-	char message[100];
+	// Buffers to store received data from queues
+	struct CommMessage Sensor_Data_Buffer;
+	enum HostPCCommands Host_PC_Buffer;
+
 	do {
-		printf("SensorController\r\n");
-		request_sensor_read();  // requests a usart read (through the callback)
-
-		struct CommMessage currentRxMessage = {0};
-
-		parse_sensor_message(&currentRxMessage);
-
-		if(currentRxMessage.IsMessageReady == true && currentRxMessage.IsCheckSumValid == true){
-
-			switch(currentRxMessage.SensorID){
-				case Controller:
-					switch(currentRxMessage.messageId){
-						case 0:
-							xTimerStop(TimerID_DepthSensor, portMAX_DELAY);
-							xTimerStop(TimerID_AcousticSensor, portMAX_DELAY);
-							send_ack_message(RemoteSensingPlatformReset);
-							break;
-						case 1: //Do Nothing
-							break;
-						case 3: //Do Nothing
-							break;
-						}
-					break;
-				case Acoustic:
-					switch(currentRxMessage.messageId){
-						case 0:
-							xTimerChangePeriod(TimerID_AcousticSensor, currentRxMessage.params, portMAX_DELAY);
-							xTimerStart(TimerID_AcousticSensor, portMAX_DELAY);
-							send_ack_message(AcousticSensorEnable);
-							break;
-						case 1: //Do Nothing
-							break;
-						case 3: //Do Nothing
-							break;
-					}
-					break;
-				case Depth:
-					switch(currentRxMessage.messageId){
-						case 0:
-							xTimerChangePeriod(TimerID_DepthSensor, currentRxMessage.params, portMAX_DELAY);
-							xTimerStart(TimerID_DepthSensor, portMAX_DELAY);
-							send_ack_message(DepthSensorEnable);
-							break;
-						case 1: //Do Nothing
-							break;
-						case 3: //Do Nothing
-							break;
-					}
-					break;
-					default://Should not get here
-						break;
-			}
-			ResetMessageStruct(&currentRxMessage);
+		// Receive data from Sensor Platform
+		if  (xQueueReceive(Queue_Sensor_Data, &Sensor_Data_Buffer, 0))
+		{
+			print_str("recieved some data");
 		}
-
+		// Receive command from host PC
+		if (xQueueReceive(Queue_HostPC_Data, &Host_PC_Buffer, 0))
+		{
+			switch (Host_PC_Buffer)
+			{
+			case PC_Command_START:
+					print_str("recieved from pc: START\r\n");
+					break;
+			case PC_Command_RESET:
+					print_str("recieved from pc: RESET\r\n");
+					break;
+			default:	// Shouldn't get here
+					print_str("recieved from pc: INVALID COMMAND\r\n");
+					break;
+			}
+		}
 		vTaskDelay(1000 / portTICK_RATE_MS);
 	} while(1);
 }
