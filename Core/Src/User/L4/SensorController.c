@@ -35,32 +35,19 @@ This task is created from the main.
 ******************************************************************************/
 void SensorControllerTask(void *params)
 {
-	// Buffers to store received data from queues
-	struct CommMessage Sensor_Data_Buffer;
-	enum HostPCCommands Host_PC_Buffer;
+	int Host_PC_Buffer;
 
 	do {
-		// Receive data from Sensor Platform
-		if  (xQueueReceive(Queue_Sensor_Data, &Sensor_Data_Buffer, 0))
-		{
-			print_str("recieved some data");
-		}
-		// Receive command from host PC
+		// Recieve command from Host PC
 		if (xQueueReceive(Queue_HostPC_Data, &Host_PC_Buffer, 0))
 		{
-			switch (Host_PC_Buffer)
+			if (Host_PC_Buffer)
 			{
-			case PC_Command_START:
-					print_str("recieved from pc: START\r\n");
-					break;
-			case PC_Command_RESET:
-					print_str("recieved from pc: RESET\r\n");
-					break;
-			default:	// Shouldn't get here
-					print_str("recieved from pc: INVALID COMMAND\r\n");
-					break;
+				print_str("Got something\r\n");
 			}
 		}
+
+
 		vTaskDelay(1000 / portTICK_RATE_MS);
 	} while(1);
 }
