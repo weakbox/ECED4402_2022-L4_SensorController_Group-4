@@ -41,6 +41,7 @@ void SensorControllerTask(void *params)
 
 	int HostPC_Command = 0;
 	struct CommMessage currentRxMessage = {0};
+	char buffer[64];
 
 	do {
 		if (xQueueReceive(Queue_HostPC_Data, &HostPC_Command, 0))
@@ -83,9 +84,10 @@ void SensorControllerTask(void *params)
 				{
 					print_str("Acoustic sensor enabled!\r\n");
 				}
-				else if (currentRxMessage.messageId == 2)
+				else if (currentRxMessage.messageId == 3)
 				{
-					print_str("AS DATA\r\n");
+					sprintf(buffer, "Acoustic Sensor Reading: %d\r\n", currentRxMessage.params);
+					print_str(buffer);
 				}
 				break;
 			case Depth:
@@ -93,9 +95,10 @@ void SensorControllerTask(void *params)
 				{
 					print_str("Depth sensor enabled!\r\n");
 				}
-				else if (currentRxMessage.messageId == 2)
+				else if (currentRxMessage.messageId == 3)
 				{
-					print_str("DS DATA\r\n");
+					sprintf(buffer, "Acoustic Sensor Reading: %d\r\n", currentRxMessage.params);
+					print_str(buffer);
 				}
 				break;
 			}
