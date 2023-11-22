@@ -18,10 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include <stdio.h>
 #include "cmsis_os.h"
-#include <string.h>
-
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -77,39 +74,9 @@ void StartDefaultTask(void *argument);
   * @brief  The application entry point.
   * @retval int
   */
-#ifdef __GNUC__
-#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#define GETCHAR_PROTOTYPE int __io_getchar(void)
-#else
-#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#define GETCHAR_PROTOTYPE int fgetc(FILE *f)
-#endif
-
-PUTCHAR_PROTOTYPE
-{
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-  return ch;
-}
-
-GETCHAR_PROTOTYPE
-{
-  uint8_t ch = 0;
-
-  /* Clear the Overrun flag just before receiving the first character */
-  __HAL_UART_CLEAR_OREFLAG(&huart2);
-
-  /* Wait for reception of a character on the USART RX line and echo this
-   * character on console */
-  HAL_UART_Receive(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-  HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-  return ch;
-}
-
 int main(void)
 {
-
   /* USER CODE BEGIN 1 */
-	setvbuf(stdin, NULL, _IONBF, 0);
 
   /* USER CODE END 1 */
 
@@ -133,17 +100,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
-
   /* USER CODE BEGIN 2 */
-
-  char *start = "start";
-  char message[100];
-  do
-  {
-	scanf("%s", message);
-	printf("%s\r\n", message);
-  } while(strcmp(start,message));
-
   main_user();
 #if 0
   /* USER CODE END 2 */

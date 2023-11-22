@@ -33,6 +33,8 @@ void SensorPlatformTask(void *params)
 	const TickType_t TimerDefaultPeriod = 1000;
 	TimerHandle_t TimerID_AcousticSensor,TimerID_DepthSensor;
 
+	print_str("Sensor Platform Task\r\n");
+
 	TimerID_DepthSensor = xTimerCreate(
 		"Depth Sensor Task",
 		TimerDefaultPeriod,		// Period: Needed to be changed based on parameter
@@ -58,7 +60,6 @@ void SensorPlatformTask(void *params)
 		parse_sensor_message(&currentRxMessage);
 
 		if(currentRxMessage.IsMessageReady == true && currentRxMessage.IsCheckSumValid == true){
-
 			switch(currentRxMessage.SensorID){
 				case Controller:
 					switch(currentRxMessage.messageId){

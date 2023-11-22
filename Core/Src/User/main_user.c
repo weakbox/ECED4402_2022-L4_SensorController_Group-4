@@ -30,6 +30,8 @@
 void main_user(){
 	util_init();
 
+	print_str("Group 4 Lab 4\r\n");
+
 	initialize_sensor_datalink();
 
 #if CODE_MODE == SENSORCONTROLLER_MODE

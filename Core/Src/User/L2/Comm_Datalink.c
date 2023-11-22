@@ -83,6 +83,7 @@ void parse_sensor_message(struct CommMessage* currentRxMessage)
 				break;
 			case SensorID_S: //Get Sensor ID Code
 				checksum_val ^= CurrentChar;
+				print_str(CurrentChar);
 				if(CurrentChar == ','){
 					currentState = MessageID_S;
 					break;

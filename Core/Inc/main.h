@@ -80,5 +80,3 @@ void Error_Handler(void);
 #endif
 
 #endif /* __MAIN_H */
-
-extern UART_HandleTypeDef huart2;

@@ -24,6 +24,7 @@
 QueueHandle_t Queue_Sensor_Data;
 QueueHandle_t Queue_HostPC_Data;
 
+
 static void ResetMessageStruct(struct CommMessage* currentRxMessage){
 
 	static const struct CommMessage EmptyMessage = {0};
@@ -35,18 +36,52 @@ This task is created from the main.
 ******************************************************************************/
 void SensorControllerTask(void *params)
 {
-	int Host_PC_Buffer;
+	print_str("Sensor Controller Task\r\n");
+	const TickType_t TimerDefaultPeriod = 1000;
+
+	request_sensor_read();  // requests a usart read (through the callback)
+
+	struct CommMessage currentRxMessage = {0};
 
 	do {
-		// Recieve command from Host PC
-		if (xQueueReceive(Queue_HostPC_Data, &Host_PC_Buffer, 0))
+		// Receive command from host PC
+		switch (parse_hostPC_message())
 		{
-			if (Host_PC_Buffer)
-			{
-				print_str("Got something\r\n");
-			}
+		case PC_Command_START:
+			print_str("Command received from Host PC: START\r\n");
+			send_sensorEnable_message(Acoustic, TimerDefaultPeriod);
+			send_sensorEnable_message(Depth, TimerDefaultPeriod);
+			break;
+		case PC_Command_RESET:
+			print_str("Command received from Host PC: RESET\r\n");
+			send_sensorReset_message();
+			break;
+		default:
+			print_str("No Command Recieved.\r\n");
+			break;
 		}
 
+		// Receive data from Sensor Platform
+		parse_sensor_message(&currentRxMessage);
+		if(currentRxMessage.IsMessageReady == true && currentRxMessage.IsCheckSumValid == true)
+		{
+			switch (currentRxMessage.SensorID)
+			{
+			case Controller:
+				print_str("Controller Answered!\r\n");
+				break;
+			case Acoustic:
+				print_str("Acoustic Sensor Answered!\r\n");
+				break;
+			case Depth:
+				print_str("Depth Sensor Answered!\r\n");
+				break;
+			default:
+				print_str("Garbage Data!\r\n");
+				break;
+			}
+			ResetMessageStruct(&currentRxMessage);
+		}
 
 		vTaskDelay(1000 / portTICK_RATE_MS);
 	} while(1);
