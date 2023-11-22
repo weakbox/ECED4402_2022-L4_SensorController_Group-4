@@ -39,34 +39,39 @@ void SensorControllerTask(void *params)
 	print_str("Sensor Controller Task\r\n");
 	const TickType_t TimerDefaultPeriod = 1000;
 
-	request_sensor_read();  // requests a usart read (through the callback)
-
+	int HostPC_Command = 0;
 	struct CommMessage currentRxMessage = {0};
 
 	do {
-		// Receive command from host PC
-		switch (parse_hostPC_message())
+		if (xQueueReceive(Queue_HostPC_Data, &HostPC_Command, 0))
 		{
-		case PC_Command_START:
-			print_str("Command received from Host PC: START\r\n");
-			send_sensorEnable_message(Acoustic, TimerDefaultPeriod);
-			send_sensorEnable_message(Depth, TimerDefaultPeriod);
-			break;
-		case PC_Command_RESET:
-			print_str("Command received from Host PC: RESET\r\n");
-			send_sensorReset_message();
-			break;
-		default:
-			print_str("No Command Recieved.\r\n");
-			break;
+		switch (HostPC_Command)
+			{
+			case PC_Command_START:
+				print_str("Command received from Host PC: START\r\n");
+				send_sensorEnable_message(Acoustic, TimerDefaultPeriod);
+				send_sensorEnable_message(Depth, TimerDefaultPeriod);
+				break;
+			case PC_Command_RESET:
+				print_str("Command received from Host PC: RESET\r\n");
+				send_sensorReset_message();
+				break;
+			default:
+				print_str("No Command Recieved.\r\n");
+				break;
+			}
+			HostPC_Command = 0;
 		}
+		// Receive command from host PC
 
-		// Receive data from Sensor Platform
-		parse_sensor_message(&currentRxMessage);
-		if(currentRxMessage.IsMessageReady == true && currentRxMessage.IsCheckSumValid == true)
+
+		// Receive data from Sensor Platform_RX_Task
+		if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
 		{
 			switch (currentRxMessage.SensorID)
 			{
+			case None:
+				break;
 			case Controller:
 				print_str("Controller Answered!\r\n");
 				break;
@@ -76,14 +81,9 @@ void SensorControllerTask(void *params)
 			case Depth:
 				print_str("Depth Sensor Answered!\r\n");
 				break;
-			default:
-				print_str("Garbage Data!\r\n");
-				break;
 			}
 			ResetMessageStruct(&currentRxMessage);
 		}
-
-		vTaskDelay(1000 / portTICK_RATE_MS);
 	} while(1);
 }
 
