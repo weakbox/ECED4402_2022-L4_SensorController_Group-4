@@ -57,7 +57,7 @@ void SensorControllerTask(void *params)
 				send_sensorReset_message();
 				break;
 			default:
-				print_str("No Command Recieved.\r\n");
+				print_str("Invalid command!\r\n");
 				break;
 			}
 			HostPC_Command = 0;
@@ -73,13 +73,30 @@ void SensorControllerTask(void *params)
 			case None:
 				break;
 			case Controller:
-				print_str("Controller Answered!\r\n");
+				if (currentRxMessage.messageId == 1)
+				{
+					print_str("Sensor disabled!\r\n");
+				}
 				break;
 			case Acoustic:
-				print_str("Acoustic Sensor Answered!\r\n");
+				if (currentRxMessage.messageId == 1)
+				{
+					print_str("Acoustic sensor enabled!\r\n");
+				}
+				else if (currentRxMessage.messageId == 2)
+				{
+					print_str("AS DATA\r\n");
+				}
 				break;
 			case Depth:
-				print_str("Depth Sensor Answered!\r\n");
+				if (currentRxMessage.messageId == 1)
+				{
+					print_str("Depth sensor enabled!\r\n");
+				}
+				else if (currentRxMessage.messageId == 2)
+				{
+					print_str("DS DATA\r\n");
+				}
 				break;
 			}
 			ResetMessageStruct(&currentRxMessage);
