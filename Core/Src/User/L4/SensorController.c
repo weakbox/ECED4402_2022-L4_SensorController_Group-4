@@ -97,7 +97,7 @@ void SensorControllerTask(void *params)
 				}
 				else if (currentRxMessage.messageId == 3)
 				{
-					sprintf(buffer, "Acoustic Sensor Reading: %d\r\n", currentRxMessage.params);
+					sprintf(buffer, "Depth Sensor Reading: %d\r\n", currentRxMessage.params);
 					print_str(buffer);
 				}
 				break;
