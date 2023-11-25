@@ -21,14 +21,70 @@
 #include "Timers.h"
 #include "semphr.h"
 
+#define STARTSTATE 0 //States of the controller
+#define ENABLESTATE 1
+#define PARSESTATE 2
+
 QueueHandle_t Queue_Sensor_Data;
 QueueHandle_t Queue_HostPC_Data;
 
+TimerHandle_t xTimer;
+
+int state = STARTSTATE; //Current state of controller
+char* Sensor_Data_Buffer;
+char Accoustic_ack = 0; //Acoustic sensor enabled
+char Depth_ack = 0;
 
 static void ResetMessageStruct(struct CommMessage* currentRxMessage){
 
 	static const struct CommMessage EmptyMessage = {0};
 	*currentRxMessage = EmptyMessage;
+}
+
+//Wait for all sensor acknowledgments
+void ack_wait()
+{
+	struct CommMessage currentRxMessage = {0};
+	// Receive data from Sensor Platform_RX_Task
+	if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
+	{
+		switch (currentRxMessage.SensorID)
+		{
+		case None:
+			break;
+		//Should not happen
+		case Controller:
+			break;
+		case Acoustic:
+			if (currentRxMessage.messageId == 1)
+			{
+				print_str("Acoustic sensor enabled!\r\n");
+				Accoustic_ack = 1;
+			}
+			break;
+		case Depth:
+			if (currentRxMessage.messageId == 1)
+			{
+				print_str("Depth sensor enabled!\r\n");
+				Depth_ack = 1;
+			}
+			break;
+		}
+		ResetMessageStruct(&currentRxMessage);
+	}
+	//Both sensors enabled, move to next state
+	if (Accoustic_ack && Depth_ack)
+	{
+		xTimerStop( xTimer, 0 ); //No need to wait any longer
+		state = PARSESTATE;
+	}
+}
+
+void disable_sensors()
+{
+	send_sensorReset_message();//Reset
+	Accoustic_ack = 0; //Allow new acknowledgments to be received
+	Depth_ack = 0;
 }
 
 /******************************************************************************
@@ -37,73 +93,80 @@ This task is created from the main.
 void SensorControllerTask(void *params)
 {
 	print_str("Sensor Controller Task\r\n");
-	const TickType_t TimerDefaultPeriod = 1000;
+	const TickType_t TimerDefaultPeriod = 100;
+	struct CommMessage currentRxMessage = {0};
 
 	int HostPC_Command = 0;
-	struct CommMessage currentRxMessage = {0};
 	char buffer[64];
+	xTimer = xTimerCreate("Timer1",100,pdTRUE,( void * ) 0, ack_wait);
 
 	do {
-		if (xQueueReceive(Queue_HostPC_Data, &HostPC_Command, 0))
+		switch (state)
 		{
-		switch (HostPC_Command)
+		case STARTSTATE:
+			// Receive command from host PC and check if START command is entered
+			if ((xQueueReceive(Queue_HostPC_Data, &HostPC_Command, 0)) && (HostPC_Command == PC_Command_START))
 			{
-			case PC_Command_START:
 				print_str("Command received from Host PC: START\r\n");
+				state = ENABLESTATE;
 				send_sensorEnable_message(Acoustic, TimerDefaultPeriod);
 				send_sensorEnable_message(Depth, TimerDefaultPeriod);
-				break;
-			case PC_Command_RESET:
-				print_str("Command received from Host PC: RESET\r\n");
-				send_sensorReset_message();
-				break;
-			default:
-				print_str("Invalid command!\r\n");
-				break;
+				xTimerStart( xTimer, 0 ); //Start timer to check if sensors are enabled
 			}
-			HostPC_Command = 0;
-		}
-		// Receive command from host PC
-
-
-		// Receive data from Sensor Platform_RX_Task
-		if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
-		{
-			switch (currentRxMessage.SensorID)
+			break;
+		case ENABLESTATE:
+			print_str("Enabled check state\r\n");
+			break;
+		case PARSESTATE:
+			//Reset sensors
+			if ((xQueueReceive(Queue_HostPC_Data, &HostPC_Command, 0)) && (HostPC_Command == PC_Command_RESET))
 			{
-			case None:
-				break;
-			case Controller:
-				if (currentRxMessage.messageId == 1)
-				{
-					print_str("Sensor disabled!\r\n");
-				}
-				break;
-			case Acoustic:
-				if (currentRxMessage.messageId == 1)
-				{
-					print_str("Acoustic sensor enabled!\r\n");
-				}
-				else if (currentRxMessage.messageId == 3)
-				{
-					sprintf(buffer, "Acoustic Sensor Reading: %d\r\n", currentRxMessage.params);
-					print_str(buffer);
-				}
-				break;
-			case Depth:
-				if (currentRxMessage.messageId == 1)
-				{
-					print_str("Depth sensor enabled!\r\n");
-				}
-				else if (currentRxMessage.messageId == 3)
-				{
-					sprintf(buffer, "Depth Sensor Reading: %d\r\n", currentRxMessage.params);
-					print_str(buffer);
-				}
+				print_str("Command received from Host PC: RESET\r\n");
+				disable_sensors();
+				state = STARTSTATE;
 				break;
 			}
-			ResetMessageStruct(&currentRxMessage);
+			// Receive data from Sensor Platform_RX_Task
+			if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
+			{
+				switch (currentRxMessage.SensorID)
+				{
+				case None:
+					break;
+				case Controller:
+					if (currentRxMessage.messageId == 1)
+					{
+						print_str("Sensor disabled!\r\n");
+					}
+					break;
+				case Acoustic:
+					if (currentRxMessage.messageId == 1)
+					{
+						print_str("Acoustic sensor enabled!\r\n");
+					}
+					else if (currentRxMessage.messageId == 3)
+					{
+						sprintf(buffer, "Acoustic Sensor Reading: %d\r\n", currentRxMessage.params);
+						print_str(buffer);
+					}
+					break;
+				case Depth:
+					if (currentRxMessage.messageId == 1)
+					{
+						print_str("Depth sensor enabled!\r\n");
+					}
+					else if (currentRxMessage.messageId == 3)
+					{
+						sprintf(buffer, "Depth Sensor Reading: %d\r\n", currentRxMessage.params);
+						print_str(buffer);
+					}
+					break;
+				}
+				ResetMessageStruct(&currentRxMessage);
+			}
 		}
+		//Reset so new command can be received
+		HostPC_Command = 0;
 	} while(1);
 }
 
