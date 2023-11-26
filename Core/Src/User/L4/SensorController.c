@@ -31,7 +31,7 @@ TimerHandle_t xTimer;
 int state = STARTSTATE; //Current state of controller
 char* Sensor_Data_Buffer;
 char SBL_ack = 0; //SBL sensor enabled
-char Hydraulic_ack = 0;
+char Depth_ack = 0;
 char Oil_ack = 0;
 
 static void ResetMessageStruct(struct CommMessage* currentRxMessage){
@@ -58,9 +58,9 @@ void ack_wait()
 			print_str("SBL sensor enabled!\r\n");
 			SBL_ack = 1;
 			break;
-		case Hydraulic:
-			print_str("Hydraulic sensor enabled!\r\n");
-			Hydraulic_ack = 1;
+		case Depth:
+			print_str("Depth sensor enabled!\r\n");
+			Depth_ack = 1;
 			break;
 		case Oil:
 			print_str("Oil sensor enabled!\r\n");
@@ -70,7 +70,7 @@ void ack_wait()
 		ResetMessageStruct(&currentRxMessage);
 	}
 	//Both sensors enabled, move to next state
-	if (SBL_ack && Hydraulic_ack && Oil_ack)
+	if (SBL_ack && Depth_ack && Oil_ack)
 	{
 		xTimerStop( xTimer, 0 ); //No need to wait any longer
 		state = PARSESTATE;
@@ -81,7 +81,7 @@ void disable_sensors()
 {
 	send_sensorReset_message();//Reset
 	SBL_ack = 0; //Allow new acknowledgments to be received
-	Hydraulic_ack = 0;
+	Depth_ack = 0;
 	Oil_ack = 0;
 }
 
@@ -108,7 +108,7 @@ void SensorControllerTask(void *params)
 				print_str("Command received from Host PC: START\r\n");
 				state = ENABLESTATE;
 				send_sensorEnable_message(SBL, TimerDefaultPeriod);
-				send_sensorEnable_message(Hydraulic, TimerDefaultPeriod);
+				send_sensorEnable_message(Depth, TimerDefaultPeriod);
 				xTimerStart( xTimer, 0 ); //Start timer to check if sensors are enabled
 			}
 			break;
@@ -144,10 +144,10 @@ void SensorControllerTask(void *params)
 						print_str(buffer);
 					}
 					break;
-				case Hydraulic:
+				case Depth:
 					if (currentRxMessage.messageId == 3)
 					{
-						sprintf(buffer, "Hydraulic Sensor Reading: %d\r\n", currentRxMessage.params);
+						sprintf(buffer, "Depth Sensor Reading: %d\r\n", currentRxMessage.params);
 						print_str(buffer);
 					}
 					break;

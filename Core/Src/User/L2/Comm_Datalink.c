@@ -97,8 +97,8 @@ void parse_sensor_message(struct CommMessage* currentRxMessage)
 						currentRxMessage->SensorID = Controller;
 					else if(strcmp(sensorId, "SBLID") == 0)//Sensor ID: SBL
 						currentRxMessage->SensorID = SBL;
-					else if(strcmp(sensorId, "HYDRA") == 0)//Sensor ID: Hydraulic
-						currentRxMessage->SensorID = Hydraulic;
+					else if(strcmp(sensorId, "DEPTH") == 0)//Sensor ID: Depth
+						currentRxMessage->SensorID = Depth;
 					else if(strcmp(sensorId, "OILID") == 0)//Sensor ID: Oil
 						currentRxMessage->SensorID = Oil;
 					else{//Sensor ID: None
@@ -194,8 +194,8 @@ void send_sensorData_message(enum SensorId_t sensorType, uint16_t data){
 	case SBL:
 		sprintf(tx_sensor_buffer, "$SBLID,03,%08u,*,00\n", data);
 		break;
-	case Hydraulic:
-		sprintf(tx_sensor_buffer, "$HYDRA,03,%08u,*,00\n", data);
+	case Depth:
+		sprintf(tx_sensor_buffer, "$DEPTH,03,%08u,*,00\n", data);
 		break;
 	case Oil:
 		sprintf(tx_sensor_buffer, "$OILID,03,%08u,*,00\n", data);
@@ -213,8 +213,8 @@ void send_sensorEnable_message(enum SensorId_t sensorType, uint16_t TimePeriod_m
 	case SBL:
 		sprintf(tx_sensor_buffer, "$SBLID,00,%08u,*,00\n", TimePeriod_ms);
 		break;
-	case Hydraulic:
-		sprintf(tx_sensor_buffer, "$HYDRA,00,%08u,*,00\n", TimePeriod_ms);
+	case Depth:
+		sprintf(tx_sensor_buffer, "$DEPTH,00,%08u,*,00\n", TimePeriod_ms);
 		break;
 	case Oil:
 		sprintf(tx_sensor_buffer, "$OILID,00,%08u,*,00\n", TimePeriod_ms);
@@ -243,8 +243,8 @@ void send_ack_message(enum AckTypes AckType){
 	case SBLSensorEnable:
 		sprintf(tx_sensor_buffer, "$SBLID,01,,*,00\n");
 		break;
-	case HydraulicSensorEnable:
-		sprintf(tx_sensor_buffer, "$HYDRA,01,,*,00\n");
+	case DepthSensorEnable:
+		sprintf(tx_sensor_buffer, "$DEPTH,01,,*,00\n");
 		break;
 	case OilSensorEnable:
 		sprintf(tx_sensor_buffer, "$OILID,01,,*,00\n");

@@ -8,7 +8,7 @@
 
 #include "User/L2/Comm_Datalink.h"
 #include "User/L3/SBLSensor.h"
-#include "User/L3/HydraulicSensor.h"
+#include "User/L3/DepthSensor.h"
 #include "User/L3/OilSensor.h"
 #include "User/L4/SensorPlatform.h"
 #include "User/util.h"
@@ -32,16 +32,16 @@ It is also responsible for starting the timers for each sensor
 void SensorPlatformTask(void *params)
 {
 	const TickType_t TimerDefaultPeriod = 1000;
-	TimerHandle_t TimerID_SBLSensor, TimerID_HydraulicSensor, TimerID_OilSensor;
+	TimerHandle_t TimerID_SBLSensor, TimerID_DepthSensor, TimerID_OilSensor;
 
 	print_str("Sensor Platform Task\r\n");
 
-	TimerID_HydraulicSensor = xTimerCreate(
-		"Hydraulic Sensor Task",
+	TimerID_DepthSensor = xTimerCreate(
+		"Depth Sensor Task",
 		TimerDefaultPeriod,		// Period: Needed to be changed based on parameter
 		pdTRUE,		// Autoreload: Continue running till deleted or stopped
 		(void*)0,
-		RunHydraulicSensor
+		RunDepthSensor
 		);
 
 	TimerID_SBLSensor = xTimerCreate(
@@ -73,7 +73,7 @@ void SensorPlatformTask(void *params)
 				case Controller:
 					switch(currentRxMessage.messageId){
 						case 0:
-							xTimerStop(TimerID_HydraulicSensor, portMAX_DELAY);
+							xTimerStop(TimerID_DepthSensor, portMAX_DELAY);
 							xTimerStop(TimerID_SBLSensor, portMAX_DELAY);
 							xTimerStop(TimerID_OilSensor, portMAX_DELAY);
 							send_ack_message(RemoteSensingPlatformReset);
@@ -97,12 +97,12 @@ void SensorPlatformTask(void *params)
 							break;
 					}
 					break;
-				case Hydraulic:
+				case Depth:
 					switch(currentRxMessage.messageId){
 						case 0:
-							xTimerChangePeriod(TimerID_HydraulicSensor, currentRxMessage.params, portMAX_DELAY);
-							xTimerStart(TimerID_HydraulicSensor, portMAX_DELAY);
-							send_ack_message(HydraulicSensorEnable);
+							xTimerChangePeriod(TimerID_DepthSensor, currentRxMessage.params, portMAX_DELAY);
+							xTimerStart(TimerID_DepthSensor, portMAX_DELAY);
+							send_ack_message(DepthSensorEnable);
 							break;
 						case 1: //Do Nothing
 							break;
