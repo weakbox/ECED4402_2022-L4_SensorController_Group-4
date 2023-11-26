@@ -31,30 +31,32 @@ It is also responsible for starting the timers for each sensor
 ******************************************************************************/
 void SensorPlatformTask(void *params)
 {
-	const TickType_t TimerDefaultPeriod = 1000;
+	const TickType_t SBLTimerPeriod = 5000; //Needs to be slower than other sensors
+	const TickType_t DepthTimerPeriod = 1000;
+	const TickType_t OilTimerPeriod = 1000;
 	TimerHandle_t TimerID_SBLSensor, TimerID_DepthSensor, TimerID_OilSensor;
 
 	print_str("Sensor Platform Task\r\n");
 
-	TimerID_DepthSensor = xTimerCreate(
-		"Depth Sensor Task",
-		TimerDefaultPeriod,		// Period: Needed to be changed based on parameter
-		pdTRUE,		// Autoreload: Continue running till deleted or stopped
-		(void*)0,
-		RunDepthSensor
-		);
-
 	TimerID_SBLSensor = xTimerCreate(
 		"SBL Sensor Task",
-		TimerDefaultPeriod,		// Period: Needed to be changed based on parameter
+		SBLTimerPeriod,		// Period: Needed to be changed based on parameter
 		pdTRUE,		// Autoreload: Continue running till deleted or stopped
 		(void*)1,
 		RunSBLSensor
 		);
 
+	TimerID_DepthSensor = xTimerCreate(
+		"Depth Sensor Task",
+		DepthTimerPeriod,		// Period: Needed to be changed based on parameter
+		pdTRUE,		// Autoreload: Continue running till deleted or stopped
+		(void*)0,
+		RunDepthSensor
+		);
+
 	TimerID_OilSensor = xTimerCreate(
 		"Oil Sensor Task",
-		TimerDefaultPeriod,		// Period: Needed to be changed based on parameter
+		OilTimerPeriod,		// Period: Needed to be changed based on parameter
 		pdTRUE,		// Autoreload: Continue running till deleted or stopped
 		(void*)1,
 		RunOilSensor

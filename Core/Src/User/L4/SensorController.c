@@ -91,7 +91,7 @@ This task is created from the main.
 void SensorControllerTask(void *params)
 {
 	print_str("Sensor Controller Task\r\n");
-	const TickType_t TimerDefaultPeriod = 100;
+	const TickType_t TimerDefaultPeriod = 1000;
 	struct CommMessage currentRxMessage = {0};
 
 	int HostPC_Command = 0;
@@ -109,6 +109,7 @@ void SensorControllerTask(void *params)
 				state = ENABLESTATE;
 				send_sensorEnable_message(SBL, TimerDefaultPeriod);
 				send_sensorEnable_message(Depth, TimerDefaultPeriod);
+				send_sensorEnable_message(Oil, TimerDefaultPeriod);
 				xTimerStart( xTimer, 0 ); //Start timer to check if sensors are enabled
 			}
 			break;
@@ -140,6 +141,7 @@ void SensorControllerTask(void *params)
 				case SBL:
 					if (currentRxMessage.messageId == 3)
 					{
+						//Only reads the first SBL so far
 						sprintf(buffer, "SBL Sensor Reading: %d\r\n", currentRxMessage.params);
 						print_str(buffer);
 					}

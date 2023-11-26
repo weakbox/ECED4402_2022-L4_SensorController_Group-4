@@ -30,7 +30,7 @@
 void main_user(){
 	util_init();
 
-	print_str("Group 4 Lab 4\r\n");
+	print_str("Oil Sensing Robot\r\n");
 
 	initialize_sensor_datalink();
 
