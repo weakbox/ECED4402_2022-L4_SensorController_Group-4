@@ -2,7 +2,7 @@
  * SensorController.c
  *
  *  Created on: Oct 24, 2022
- *      Author: kadh1
+ *      Author: kadh1 / Connor McLeod / Evan Lowe
  */
 
 
@@ -10,8 +10,6 @@
 
 #include "main.h"
 #include "User/L2/Comm_Datalink.h"
-#include "User/L3/AcousticSensor.h"
-#include "User/L3/DepthSensor.h"
 #include "User/L4/SensorPlatform.h"
 #include "User/L4/SensorController.h"
 #include "User/util.h"
@@ -32,8 +30,9 @@ TimerHandle_t xTimer;
 
 int state = STARTSTATE; //Current state of controller
 char* Sensor_Data_Buffer;
-char Accoustic_ack = 0; //Acoustic sensor enabled
-char Depth_ack = 0;
+char SBL_ack = 0; //SBL sensor enabled
+char Hydraulic_ack = 0;
+char Oil_ack = 0;
 
 static void ResetMessageStruct(struct CommMessage* currentRxMessage){
 
@@ -46,7 +45,7 @@ void ack_wait()
 {
 	struct CommMessage currentRxMessage = {0};
 	// Receive data from Sensor Platform_RX_Task
-	if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
+	if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0) && (currentRxMessage.messageId == 1))
 	{
 		switch (currentRxMessage.SensorID)
 		{
@@ -55,25 +54,23 @@ void ack_wait()
 		//Should not happen
 		case Controller:
 			break;
-		case Acoustic:
-			if (currentRxMessage.messageId == 1)
-			{
-				print_str("Acoustic sensor enabled!\r\n");
-				Accoustic_ack = 1;
-			}
+		case SBL:
+			print_str("SBL sensor enabled!\r\n");
+			SBL_ack = 1;
 			break;
-		case Depth:
-			if (currentRxMessage.messageId == 1)
-			{
-				print_str("Depth sensor enabled!\r\n");
-				Depth_ack = 1;
-			}
+		case Hydraulic:
+			print_str("Hydraulic sensor enabled!\r\n");
+			Hydraulic_ack = 1;
+			break;
+		case Oil:
+			print_str("Oil sensor enabled!\r\n");
+			Oil_ack = 1;
 			break;
 		}
 		ResetMessageStruct(&currentRxMessage);
 	}
 	//Both sensors enabled, move to next state
-	if (Accoustic_ack && Depth_ack)
+	if (SBL_ack && Hydraulic_ack && Oil_ack)
 	{
 		xTimerStop( xTimer, 0 ); //No need to wait any longer
 		state = PARSESTATE;
@@ -83,8 +80,9 @@ void ack_wait()
 void disable_sensors()
 {
 	send_sensorReset_message();//Reset
-	Accoustic_ack = 0; //Allow new acknowledgments to be received
-	Depth_ack = 0;
+	SBL_ack = 0; //Allow new acknowledgments to be received
+	Hydraulic_ack = 0;
+	Oil_ack = 0;
 }
 
 /******************************************************************************
@@ -109,8 +107,8 @@ void SensorControllerTask(void *params)
 			{
 				print_str("Command received from Host PC: START\r\n");
 				state = ENABLESTATE;
-				send_sensorEnable_message(Acoustic, TimerDefaultPeriod);
-				send_sensorEnable_message(Depth, TimerDefaultPeriod);
+				send_sensorEnable_message(SBL, TimerDefaultPeriod);
+				send_sensorEnable_message(Hydraulic, TimerDefaultPeriod);
 				xTimerStart( xTimer, 0 ); //Start timer to check if sensors are enabled
 			}
 			break;
@@ -139,25 +137,24 @@ void SensorControllerTask(void *params)
 						print_str("Sensor disabled!\r\n");
 					}
 					break;
-				case Acoustic:
-					if (currentRxMessage.messageId == 1)
+				case SBL:
+					if (currentRxMessage.messageId == 3)
 					{
-						print_str("Acoustic sensor enabled!\r\n");
-					}
-					else if (currentRxMessage.messageId == 3)
-					{
-						sprintf(buffer, "Acoustic Sensor Reading: %d\r\n", currentRxMessage.params);
+						sprintf(buffer, "SBL Sensor Reading: %d\r\n", currentRxMessage.params);
 						print_str(buffer);
 					}
 					break;
-				case Depth:
-					if (currentRxMessage.messageId == 1)
+				case Hydraulic:
+					if (currentRxMessage.messageId == 3)
 					{
-						print_str("Depth sensor enabled!\r\n");
+						sprintf(buffer, "Hydraulic Sensor Reading: %d\r\n", currentRxMessage.params);
+						print_str(buffer);
 					}
-					else if (currentRxMessage.messageId == 3)
+					break;
+				case Oil:
+					if (currentRxMessage.messageId == 3)
 					{
-						sprintf(buffer, "Depth Sensor Reading: %d\r\n", currentRxMessage.params);
+						sprintf(buffer, "Oil Sensor Reading: %d\r\n", currentRxMessage.params);
 						print_str(buffer);
 					}
 					break;

@@ -2,7 +2,7 @@
  * Comm_Datalink.c
  *
  *  Created on: Oct. 21, 2022
- *      Author: Andre Hendricks / Dr. JF Bousquet
+ *      Author: Andre Hendricks / Dr. JF Bousquet / Evan Lowe
  */
 
 #include <string.h>
@@ -95,10 +95,12 @@ void parse_sensor_message(struct CommMessage* currentRxMessage)
 					sensorId[sensorIdIdx] = '\0';
 					if(strcmp(sensorId, "CNTRL") == 0)//Sensor ID: Controller
 						currentRxMessage->SensorID = Controller;
-					else if(strcmp(sensorId, "ACSTC") == 0)//Sensor ID: Acoustic
-						currentRxMessage->SensorID = Acoustic;
-					else if(strcmp(sensorId, "DEPTH") == 0)//Sensor ID: Depth
-						currentRxMessage->SensorID = Depth;
+					else if(strcmp(sensorId, "SBLID") == 0)//Sensor ID: SBL
+						currentRxMessage->SensorID = SBL;
+					else if(strcmp(sensorId, "HYDRA") == 0)//Sensor ID: Hydraulic
+						currentRxMessage->SensorID = Hydraulic;
+					else if(strcmp(sensorId, "OILID") == 0)//Sensor ID: Oil
+						currentRxMessage->SensorID = Oil;
 					else{//Sensor ID: None
 						currentRxMessage->SensorID = None;
 						currentState = Waiting_S;
@@ -189,11 +191,14 @@ void send_sensorData_message(enum SensorId_t sensorType, uint16_t data){
 	char tx_sensor_buffer[50];
 
 	switch(sensorType){
-	case Acoustic:
-		sprintf(tx_sensor_buffer, "$ACSTC,03,%08u,*,00\n", data);
+	case SBL:
+		sprintf(tx_sensor_buffer, "$SBLID,03,%08u,*,00\n", data);
 		break;
-	case Depth:
-		sprintf(tx_sensor_buffer, "$DEPTH,03,%08u,*,00\n", data);
+	case Hydraulic:
+		sprintf(tx_sensor_buffer, "$HYDRA,03,%08u,*,00\n", data);
+		break;
+	case Oil:
+		sprintf(tx_sensor_buffer, "$OILID,03,%08u,*,00\n", data);
 		break;
 	default:
 		break;
@@ -205,11 +210,14 @@ void send_sensorEnable_message(enum SensorId_t sensorType, uint16_t TimePeriod_m
 	char tx_sensor_buffer[50];
 
 	switch(sensorType){
-	case Acoustic:
-		sprintf(tx_sensor_buffer, "$ACSTC,00,%08u,*,00\n", TimePeriod_ms);
+	case SBL:
+		sprintf(tx_sensor_buffer, "$SBLID,00,%08u,*,00\n", TimePeriod_ms);
 		break;
-	case Depth:
-		sprintf(tx_sensor_buffer, "$DEPTH,00,%08u,*,00\n", TimePeriod_ms);
+	case Hydraulic:
+		sprintf(tx_sensor_buffer, "$HYDRA,00,%08u,*,00\n", TimePeriod_ms);
+		break;
+	case Oil:
+		sprintf(tx_sensor_buffer, "$OILID,00,%08u,*,00\n", TimePeriod_ms);
 		break;
 	default:
 		break;
@@ -232,11 +240,14 @@ void send_ack_message(enum AckTypes AckType){
 	case RemoteSensingPlatformReset:
 		sprintf(tx_sensor_buffer, "$CNTRL,01,,*,00\n");
 		break;
-	case AcousticSensorEnable:
-		sprintf(tx_sensor_buffer, "$ACSTC,01,,*,00\n");
+	case SBLSensorEnable:
+		sprintf(tx_sensor_buffer, "$SBLID,01,,*,00\n");
 		break;
-	case DepthSensorEnable:
-		sprintf(tx_sensor_buffer, "$DEPTH,01,,*,00\n");
+	case HydraulicSensorEnable:
+		sprintf(tx_sensor_buffer, "$HYDRA,01,,*,00\n");
+		break;
+	case OilSensorEnable:
+		sprintf(tx_sensor_buffer, "$OILID,01,,*,00\n");
 		break;
 	}
 
