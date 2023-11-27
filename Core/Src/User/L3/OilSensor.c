@@ -2,7 +2,7 @@
  * OilSensor.c
  *
  *  Created on: Nov 25, 2023
- *      Author: evanl
+ *      Author: Evan Lowe
  */
 
 #include <stdlib.h>
@@ -15,6 +15,17 @@
 #include "FreeRTOS.h"
 #include "Timers.h"
 
+#define precision 10 //Sensor is accurate to ten units
+#define incVariance 5
+//Oil will decrease at a faster rate on average because oil floats to surface
+#define decVariance 20
+#define steadyVariance 3
+#define steadyMean 50
+#define highVariance 50
+#define highMean 1000
+
+#define maxCount 5
+
 enum oilStates {steady, oilIncrease, oilDecrease};
 
 /******************************************************************************
@@ -22,19 +33,10 @@ This is a software callback function.
 ******************************************************************************/
 void RunOilSensor(TimerHandle_t xTimer) //Default 1000 ms
 {
-	const uint16_t precision = 10; //Sensor is accurate to ten units
-	const uint16_t incVariance = 5;
-	//Oil will decrease at a faster rate on average because oil floats to surface
-	const uint16_t decVariance = 20;
-	const uint16_t steadyVariance = 3;
-	const uint16_t steadyMean = 50;
-	const uint16_t highVariance = 50;
-	const uint16_t highMean = 1000;
-	uint16_t highOilChance;
-	static uint16_t oil = 1000;
+	uint8_t highOilChance;
+	static uint32_t oil = 1000;
 	static enum oilStates oilState = oilDecrease; //Oil pools at surface so the start is highest concentration
-	const uint16_t maxCount = 5;
-	static uint16_t incCount = maxCount;
+	static uint8_t incCount = maxCount;
 
 	if(oilState == oilIncrease)
 	{

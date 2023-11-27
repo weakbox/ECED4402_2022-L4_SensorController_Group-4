@@ -31,7 +31,7 @@ struct CommMessage
 };
 
 //Send data based on sensor type
-void send_sensorData_message(enum SensorId_t sensorType, uint16_t data);
+void send_sensorData_message(enum SensorId_t sensorType, uint32_t data);
 
 // acknowledge messages to confirm that command messages have been received.
 void send_ack_message(enum AckTypes AckType);

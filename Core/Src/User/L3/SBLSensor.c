@@ -2,7 +2,7 @@
  * SBLSensor.c
  *
  *  Created on: Nov 25, 2023
- *      Author: evanl
+ *      Author: Evan Lowe
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,9 +13,11 @@
 #include "FreeRTOS.h"
 #include "Timers.h"
 
-#define variance 2
-#define mean 7
+#define variance 200
+#define mean 667 //Sensors run every 5 seconds, The robot decends at 0.2 m/s
 #define precision 100 //Sensor is accurate to 100 units
+#define startTime 1000
+#define endTime 100 * 1000000 / 1500
 
 uint16_t changeInTime()
 {
@@ -24,11 +26,11 @@ uint16_t changeInTime()
 	//If the robot moves away or towards the drill
 	if (rand() % 2)
 	{
-		time = mean - ((rand() % variance) * precision);
+		time = mean + (rand() % variance);
 	}
 	else
 	{
-		time = mean + ((rand() % variance) * precision);
+		time = mean - (rand() % variance);
 	}
 
 	return time;
@@ -40,11 +42,9 @@ This is a software callback function.
 void RunSBLSensor(TimerHandle_t xTimer)
 {
 	//Three SBL station ping times, equal start distance from robot
-	const uint16_t startTime = 100;
-	static uint16_t sbl_1 = startTime;
-	static uint16_t sbl_2 = startTime;
-	static uint16_t sbl_3 = startTime;
-	const int endTime = 100*1000000/1500;
+	static uint32_t sbl_1 = startTime;
+	static uint32_t sbl_2 = startTime;
+	static uint32_t sbl_3 = startTime;
 	static uint8_t down = true;
 
 	if(down)

@@ -187,18 +187,18 @@ enum HostPCCommands parse_hostPC_message(){
 }
 
 
-void send_sensorData_message(enum SensorId_t sensorType, uint16_t data){
+void send_sensorData_message(enum SensorId_t sensorType, uint32_t data){
 	char tx_sensor_buffer[50];
 
 	switch(sensorType){
 	case SBL:
-		sprintf(tx_sensor_buffer, "$SBLID,03,%08u,*,00\n", data);
+		sprintf(tx_sensor_buffer, "$SBLID,03,%08lu,*,00\n", data);
 		break;
 	case Depth:
-		sprintf(tx_sensor_buffer, "$DEPTH,03,%08u,*,00\n", data);
+		sprintf(tx_sensor_buffer, "$DEPTH,03,%08lu,*,00\n", data);
 		break;
 	case Oil:
-		sprintf(tx_sensor_buffer, "$OILID,03,%08u,*,00\n", data);
+		sprintf(tx_sensor_buffer, "$OILID,03,%08lu,*,00\n", data);
 		break;
 	default:
 		break;

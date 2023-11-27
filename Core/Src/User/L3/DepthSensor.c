@@ -15,24 +15,26 @@
 #include "FreeRTOS.h"
 #include "Timers.h"
 
-#define MAXDEPTH 100
+#define MaxDepth 10000 //100 m
+#define StartDepth 20
+#define RobotSpeed 20 //cm/s
 
 /******************************************************************************
 This is a software callback function.
 ******************************************************************************/
 void RunDepthSensor(TimerHandle_t xTimer)
 {
-	static uint16_t depth = 0.2;
+	static uint32_t depth = StartDepth;
 	static uint8_t down = true;
-	if(down)
-		depth += 0.2;
+	if (down)
+		depth += RobotSpeed;
 	else
-		depth -=0.2;
+		depth -= RobotSpeed;
 
-	if(depth == MAXDEPTH)
-		down = false;
-	if(depth == 0)
-		down = true;
+	if (depth == MaxDepth)
+		down = 0;
+	if (depth == StartDepth)
+		down = 1;
 
 	send_sensorData_message(Depth, depth);
 }
