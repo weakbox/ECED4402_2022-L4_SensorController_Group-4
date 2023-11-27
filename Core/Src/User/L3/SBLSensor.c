@@ -40,6 +40,8 @@ This is a software callback function.
 ******************************************************************************/
 void RunSBLSensor(TimerHandle_t xTimer)
 {
+	// print_str("Polling SBL Sensor...\r\n");
+
 	//Three SBL station ping times, equal start distance from robot
 	static uint32_t sbl_1 = startTime;
 	static uint32_t sbl_2 = startTime;

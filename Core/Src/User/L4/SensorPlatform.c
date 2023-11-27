@@ -58,7 +58,7 @@ void SensorPlatformTask(void *params)
 		"Oil Sensor Task",
 		OilTimerPeriod,		// Period: Needed to be changed based on parameter
 		pdTRUE,		// Autoreload: Continue running till deleted or stopped
-		(void*)1,
+		(void*)2,
 		RunOilSensor
 		);
 
@@ -71,8 +71,13 @@ void SensorPlatformTask(void *params)
 		parse_sensor_message(&currentRxMessage);
 
 		if(currentRxMessage.IsMessageReady == true && currentRxMessage.IsCheckSumValid == true){
+			char buffer[64];
+			sprintf(buffer, "Received a message %d with ID: %d\r\n", currentRxMessage.messageId, currentRxMessage.SensorID);
+			print_str(buffer);
+
 			switch(currentRxMessage.SensorID){
 				case Controller:
+					print_str("Received message for controller!\r\n");
 					switch(currentRxMessage.messageId){
 						case 0:
 							xTimerStop(TimerID_DepthSensor, portMAX_DELAY);
@@ -87,6 +92,7 @@ void SensorPlatformTask(void *params)
 						}
 					break;
 				case SBL:
+					print_str("Received message for SBL Sensor!\r\n");
 					switch(currentRxMessage.messageId){
 						case 0:
 							//Timer will only be started for one SBL station because all three are produced by the same function
@@ -101,6 +107,7 @@ void SensorPlatformTask(void *params)
 					}
 					break;
 				case Depth:
+					print_str("Received message for Depth Sensor!\r\n");
 					switch(currentRxMessage.messageId){
 						case 0:
 							xTimerChangePeriod(TimerID_DepthSensor, currentRxMessage.params, portMAX_DELAY);
@@ -114,6 +121,7 @@ void SensorPlatformTask(void *params)
 					}
 					break;
 				case Oil:
+					print_str("Received message for Oil Sensor!\r\n");
 					switch(currentRxMessage.messageId){
 						case 0:
 							xTimerChangePeriod(TimerID_OilSensor, currentRxMessage.params, portMAX_DELAY);
@@ -127,6 +135,7 @@ void SensorPlatformTask(void *params)
 					}
 					break;
 				default://Should not get here
+					print_str("Invalid case in sensor_ID!\r\n");
 					break;
 			}
 			ResetMessageStruct(&currentRxMessage);

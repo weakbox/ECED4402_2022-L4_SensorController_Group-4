@@ -28,6 +28,8 @@
 
 enum oilStates {steady, oilIncrease, oilDecrease};
 
+char buffer[64];
+
 /******************************************************************************
 This is a software callback function.
 ******************************************************************************/
@@ -37,6 +39,8 @@ void RunOilSensor(TimerHandle_t xTimer) //Default 1000 ms
 	static uint32_t oil = 1000;
 	static enum oilStates oilState = oilDecrease; //Oil pools at surface so the start is highest concentration
 	static uint8_t incCount = maxCount;
+
+	// print_str("Polling Oil Sensor...\r\n");
 
 	if(oilState == oilIncrease)
 	{
@@ -51,7 +55,7 @@ void RunOilSensor(TimerHandle_t xTimer) //Default 1000 ms
 	{
 		oil -= (rand() % decVariance)  * precision;
 		incCount--;
-		if (oil <= 0)
+		if (oil > 50000)
 		{
 			incCount = 0;
 			oilState = steady;
@@ -65,18 +69,19 @@ void RunOilSensor(TimerHandle_t xTimer) //Default 1000 ms
 		//%50 chance high oil is lower or higher than mean
 		if (!highOilChance)
 		{
-			oil = (highMean + (rand() % highVariance) * precision);
+			oil = (highMean + ((rand() % highVariance) * precision));
 			oilState = oilIncrease;
 		}
 		else if (highOilChance % 2)
 		{
-			oil = (steadyMean + (rand() % steadyVariance) * precision);
+			oil = (steadyMean + ((rand() % steadyVariance) * precision));
 		}
 		else
 		{
-			oil = (steadyMean - (rand() % steadyVariance) * precision);
+			oil = (steadyMean - ((rand() % steadyVariance) * precision));
 		}
 	}
-
+//	sprintf(buffer, "oil raw: %u\r\n", oil);
+//	print_str(buffer);
 	send_sensorData_message(Oil, oil);
 }
