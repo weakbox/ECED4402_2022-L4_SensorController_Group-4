@@ -31,7 +31,7 @@ It is also responsible for starting the timers for each sensor
 ******************************************************************************/
 void SensorPlatformTask(void *params)
 {
-	const TickType_t SBLTimerPeriod = 5000; //Needs to be slower than other sensors
+	const TickType_t SBLTimerPeriod = 2000; //Needs to be slower than other sensors
 	const TickType_t DepthTimerPeriod = 1000;
 	const TickType_t OilTimerPeriod = 1000;
 	TimerHandle_t TimerID_SBLSensor, TimerID_DepthSensor, TimerID_OilSensor;

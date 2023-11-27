@@ -15,14 +15,14 @@
 #include "FreeRTOS.h"
 #include "Timers.h"
 
-#define precision 10 //Sensor is accurate to ten units
+#define precision 100 //Sensor is accurate to ten units
 #define incVariance 5
-//Oil will decrease at a faster rate on average because oil floats to surface
-#define decVariance 20
-#define steadyVariance 3
-#define steadyMean 50
-#define highVariance 50
-#define highMean 1000
+ //Oil will decrease at a faster rate on average because oil floats to surface
+#define decVariance 10
+#define steadyVariance 2
+#define steadyMean 100
+#define highVariance 40
+#define highMean 500
 
 #define maxCount 5
 
@@ -60,26 +60,21 @@ void RunOilSensor(TimerHandle_t xTimer) //Default 1000 ms
 	}
 	else if (oilState == steady)
 	{
-		//10% chance of high oil level, 0 or 1 (significantly higher than actual chance to show how a leak is detected)
-		highOilChance = (rand() % 20);
+		//10% chance of high oil level, 0 (significantly higher than actual chance to show how a leak is detected)
+		highOilChance = (rand() % 10);
 		//%50 chance high oil is lower or higher than mean
-		if (highOilChance == 1)
+		if (!highOilChance)
 		{
-			oil = (highMean + (rand() % highVariance)  * precision);
-			oilState = oilIncrease;
-		}
-		else if (!highOilChance)
-		{
-			oil = (highMean - (rand() % highVariance)  * precision);
+			oil = (highMean + (rand() % highVariance) * precision);
 			oilState = oilIncrease;
 		}
 		else if (highOilChance % 2)
 		{
-			oil = (steadyMean + (rand() % steadyVariance)  * precision);
+			oil = (steadyMean + (rand() % steadyVariance) * precision);
 		}
 		else
 		{
-			oil = (steadyMean - (rand() % steadyVariance)  * precision);
+			oil = (steadyMean - (rand() % steadyVariance) * precision);
 		}
 	}
 

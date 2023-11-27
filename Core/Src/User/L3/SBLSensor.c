@@ -13,9 +13,8 @@
 #include "FreeRTOS.h"
 #include "Timers.h"
 
-#define variance 200
-#define mean 667 //Sensors run every 5 seconds, The robot decends at 0.2 m/s
-#define precision 100 //Sensor is accurate to 100 units
+#define variance 50
+#define mean 267 //Sensors run every 2 seconds, The robot decends at 0.2 m/s
 #define startTime 1000
 #define endTime 100 * 1000000 / 1500
 

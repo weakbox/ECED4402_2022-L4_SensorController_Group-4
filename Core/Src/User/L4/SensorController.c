@@ -125,6 +125,7 @@ void SensorControllerTask(void *params)
 				state = STARTSTATE;
 				break;
 			}
+
 			// Receive data from Sensor Platform_RX_Task
 			if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
 			{
