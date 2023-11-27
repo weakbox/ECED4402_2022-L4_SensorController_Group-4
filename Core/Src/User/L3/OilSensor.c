@@ -15,7 +15,7 @@
 #include "FreeRTOS.h"
 #include "Timers.h"
 
-#define precision 100 //Sensor is accurate to ten units
+#define precision 100 //Sensor is accurate to 100 units
 #define incVariance 5
  //Oil will decrease at a faster rate on average because oil floats to surface
 #define decVariance 10
