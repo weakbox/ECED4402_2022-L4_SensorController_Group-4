@@ -44,6 +44,9 @@ void main_user(){
 	xTaskCreate(SensorPlatform_RX_Task,"SensorPlatform_RX_Task", configMINIMAL_STACK_SIZE + 100, NULL, tskIDLE_PRIORITY + 2, NULL);
 
 	xTaskCreate(SensorControllerTask,"Sensor_Controller_Task", configMINIMAL_STACK_SIZE + 100, NULL, tskIDLE_PRIORITY + 2, NULL);
+
+	xTaskCreate(ProcessSendDataTask, "Process_Send_Data_Task", configMINIMAL_STACK_SIZE + 100, NULL, tskIDLE_PRIORITY + 2, NULL);
+
 #elif CODE_MODE == SENSORPLATFORM_MODE
 	xTaskCreate(SensorPlatformTask,"Sensor_Platform_Task", configMINIMAL_STACK_SIZE + 100, NULL, tskIDLE_PRIORITY + 2, NULL);
 #endif
