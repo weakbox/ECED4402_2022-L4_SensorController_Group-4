@@ -18,4 +18,5 @@ struct SensorStates{
 void HostPC_RX_Task();
 void SensorPlatform_RX_Task();
 void SensorControllerTask(void *params);
+void ProcessSendDataTask(void *params);
 #endif /* INC_USER_L4_SENSORCONTROLLER_H_ */

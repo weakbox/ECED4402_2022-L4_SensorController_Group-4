@@ -95,8 +95,14 @@ void parse_sensor_message(struct CommMessage* currentRxMessage)
 					sensorId[sensorIdIdx] = '\0';
 					if(strcmp(sensorId, "CNTRL") == 0)//Sensor ID: Controller
 						currentRxMessage->SensorID = Controller;
-					else if(strcmp(sensorId, "SBLID") == 0)//Sensor ID: SBL
+					else if(strcmp(sensorId, "SBLID") == 0)//Sensor ID: SBL1
 						currentRxMessage->SensorID = SBL;
+					else if(strcmp(sensorId, "SBL1D") == 0)//Sensor ID: SBL1
+						currentRxMessage->SensorID = SBL1;
+					else if(strcmp(sensorId, "SBL2D") == 0)//Sensor ID: SBL2
+						currentRxMessage->SensorID = SBL2;
+					else if(strcmp(sensorId, "SBL3D") == 0)//Sensor ID: SBL3
+						currentRxMessage->SensorID = SBL3;
 					else if(strcmp(sensorId, "DEPTH") == 0)//Sensor ID: Depth
 						currentRxMessage->SensorID = Depth;
 					else if(strcmp(sensorId, "OILID") == 0)//Sensor ID: Oil
@@ -191,8 +197,14 @@ void send_sensorData_message(enum SensorId_t sensorType, uint32_t data){
 	char tx_sensor_buffer[50];
 
 	switch(sensorType){
-	case SBL:
-		sprintf(tx_sensor_buffer, "$SBLID,03,%08lu,*,00\n", data);
+	case SBL1:
+		sprintf(tx_sensor_buffer, "$SBL1D,03,%08lu,*,00\n", data);
+		break;
+	case SBL2:
+		sprintf(tx_sensor_buffer, "$SBL2D,03,%08lu,*,00\n", data);
+		break;
+	case SBL3:
+		sprintf(tx_sensor_buffer, "$SBL3D,03,%08lu,*,00\n", data);
 		break;
 	case Depth:
 		sprintf(tx_sensor_buffer, "$DEPTH,03,%08lu,*,00\n", data);
@@ -212,6 +224,12 @@ void send_sensorEnable_message(enum SensorId_t sensorType, uint16_t TimePeriod_m
 	switch(sensorType){
 	case SBL:
 		sprintf(tx_sensor_buffer, "$SBLID,00,%08u,*,00\n", TimePeriod_ms);
+		break;
+	case SBL2:
+		sprintf(tx_sensor_buffer, "$SBL2D,00,%08u,*,00\n", TimePeriod_ms);
+		break;
+	case SBL3:
+		sprintf(tx_sensor_buffer, "$SBL3D,00,%08u,*,00\n", TimePeriod_ms);
 		break;
 	case Depth:
 		sprintf(tx_sensor_buffer, "$DEPTH,00,%08u,*,00\n", TimePeriod_ms);
@@ -242,6 +260,12 @@ void send_ack_message(enum AckTypes AckType){
 		break;
 	case SBLSensorEnable:
 		sprintf(tx_sensor_buffer, "$SBLID,01,,*,00\n");
+		break;
+	case SBL2SensorEnable:
+		sprintf(tx_sensor_buffer, "$SBL2D,01,,*,00\n");
+		break;
+	case SBL3SensorEnable:
+		sprintf(tx_sensor_buffer, "$SBL3D,01,,*,00\n");
 		break;
 	case DepthSensorEnable:
 		sprintf(tx_sensor_buffer, "$DEPTH,01,,*,00\n");

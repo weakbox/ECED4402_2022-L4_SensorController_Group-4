@@ -89,6 +89,7 @@ void SensorPlatformTask(void *params)
 				case SBL:
 					switch(currentRxMessage.messageId){
 						case 0:
+							//Timer will only be started for one SBL station because all three are produced by the same function
 							xTimerChangePeriod(TimerID_SBLSensor, currentRxMessage.params, portMAX_DELAY);
 							xTimerStart(TimerID_SBLSensor, portMAX_DELAY);
 							send_ack_message(SBLSensorEnable);

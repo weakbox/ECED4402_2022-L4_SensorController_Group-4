@@ -16,8 +16,8 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 
-enum SensorId_t {None, Controller, SBL, Depth, Oil};
-enum AckTypes{RemoteSensingPlatformReset, SBLSensorEnable, DepthSensorEnable, OilSensorEnable};
+enum SensorId_t {None, Controller, SBL, SBL1, SBL2, SBL3, Depth, Oil};
+enum AckTypes{RemoteSensingPlatformReset, SBLSensorEnable, SBL2SensorEnable, SBL3SensorEnable, DepthSensorEnable, OilSensorEnable};
 enum HostPCCommands{PC_Command_NONE,PC_Command_START,PC_Command_RESET};
 
 struct CommMessage

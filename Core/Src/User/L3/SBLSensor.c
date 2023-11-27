@@ -64,8 +64,8 @@ void RunSBLSensor(TimerHandle_t xTimer)
 	if ((sbl_1 <= startTime) || (sbl_2 <= startTime) || (sbl_3 <= startTime))
 		down = true;
 
-	send_sensorData_message(SBL, sbl_1);
-	send_sensorData_message(SBL, sbl_2);
-	send_sensorData_message(SBL, sbl_3);
+	send_sensorData_message(SBL1, sbl_1);
+	send_sensorData_message(SBL2, sbl_2);
+	send_sensorData_message(SBL3, sbl_3);
 }
 

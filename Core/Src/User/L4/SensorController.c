@@ -27,11 +27,13 @@ QueueHandle_t Queue_Sensor_Data;
 QueueHandle_t Queue_HostPC_Data;
 QueueHandle_t Queue_Process_Data;
 
-TimerHandle_t xTimer;
+TimerHandle_t xTimer[1];
 
 int state = STARTSTATE; //Current state of controller
 char* Sensor_Data_Buffer;
-char SBL_ack = 0; //SBL sensor enabled
+char SBL_ack = 0; //SBL1 sensor enabled
+char SBL2_ack = 0; //SBL1 sensor enabled
+char SBL3_ack = 0; //SBL1 sensor enabled
 char Depth_ack = 0;
 char Oil_ack = 0;
 
@@ -63,7 +65,7 @@ void ack_wait()
 		case Controller:
 			break;
 		case SBL:
-			print_str("SBL sensor enabled!\r\n");
+			print_str("SBL1 sensor enabled!\r\n");
 			SBL_ack = 1;
 			break;
 		case Depth:
@@ -80,15 +82,71 @@ void ack_wait()
 	//Both sensors enabled, move to next state
 	if (SBL_ack && Depth_ack && Oil_ack)
 	{
-		xTimerStop( xTimer, 0 ); //No need to wait any longer
+		xTimerStop( xTimer[0], 0 ); //No need to wait any longer
 		state = PARSESTATE;
 	}
 }
+
+/*char * calculateLocation(uint32_t sbl_1, uint32_t sbl_2, uint32_t sbl_3, uint32_t depth)
+{
+	float xLoc;
+	float yLoc;
+	float zLoc = depth;
+	uint8_t surfacePressure = 1; //Atmosphere
+	uint16_t initialSpeed = 1450; //m/s
+	float avgSpeed;
+	avgSpeed = (depth *1.677 + surfacePressure) + initialSpeed;
+}*/
+
+/*
+void process(DataPacket_t packet)
+{
+	static uint32_t sbl_1;
+	static uint32_t sbl_2;
+	static uint32_t sbl_3;
+	static uint32_t depth;
+	static uint8_t sbl_1_rec = false;
+	static uint8_t sbl_2_rec = false;
+	static uint8_t sbl_3_rec = false;
+	static uint8_t depth_rec = false;
+
+	switch (packet.sensor_type)
+	{
+	case (SBL1):
+		sbl_1 = packet.data;
+		sbl_1_rec = true;
+		break;
+	case (SBL2):
+		sbl_2 = packet.data;
+		sbl_2_rec = true;
+		break;
+	case (SBL3):
+		sbl_3 = packet.data;
+		sbl_3_rec = true;
+		break;
+	case (Depth):
+		depth = packet.data;
+		depth_rec = true;
+		break;
+	}
+
+	if (sbl_1_rec && sbl_2_rec && sbl_3_rec && depth_rec)
+	{
+		calculateLocation(sbl_1, sbl_2, sbl_3, depth);
+		sbl_1_rec = false;
+		sbl_2_rec = false;
+		sbl_3_rec = false;
+		depth_rec = false;
+	}
+}
+*/
 
 void disable_sensors()
 {
 	send_sensorReset_message();//Reset
 	SBL_ack = 0; //Allow new acknowledgments to be received
+	SBL2_ack = 0;
+	SBL3_ack = 0;
 	Depth_ack = 0;
 	Oil_ack = 0;
 }
@@ -163,6 +221,10 @@ void ProcessSendDataTask(void *params)
 		if (xQueueReceive(Queue_Process_Data, &packet, 0))
 		{
 			// Process data before sending!
+			/*if (packet.sensor_type != Oil)
+			{
+				process(packet);
+			}*/
 			decompress_data(compress_data(packet.sensor_type, packet.data));
 		}
 	} while(1);
@@ -180,7 +242,7 @@ void SensorControllerTask(void *params)
 
 	int HostPC_Command = 0;
 	char buffer[64];
-	xTimer = xTimerCreate("Timer1",100,pdTRUE,( void * ) 0, ack_wait);
+	xTimer[0] = xTimerCreate("Timer1",100,pdTRUE,( void * ) 0, ack_wait);
 
 	do {
 		switch (state)
@@ -194,11 +256,11 @@ void SensorControllerTask(void *params)
 				send_sensorEnable_message(SBL, TimerDefaultPeriod);
 				send_sensorEnable_message(Depth, TimerDefaultPeriod);
 				send_sensorEnable_message(Oil, TimerDefaultPeriod);
-				xTimerStart( xTimer, 0 ); //Start timer to check if sensors are enabled
+				xTimerStart( xTimer[0], 0 ); //Start timer to check if sensors are enabled
 			}
 			break;
 		case ENABLESTATE:
-			print_str("Enabled check state\r\n");
+			//print_str("Enabled check state\r\n");
 			break;
 		case PARSESTATE:
 			//Reset sensors
@@ -223,10 +285,26 @@ void SensorControllerTask(void *params)
 						print_str("Sensor disabled!\r\n");
 					}
 					break;
-				case SBL:
+				case SBL1:
 					if (currentRxMessage.messageId == 3)
 					{
 						//Only reads the first SBL so far
+						packet.sensor_type = currentRxMessage.SensorID;
+						packet.data = currentRxMessage.params;
+						xQueueSendToBack(Queue_Process_Data, &packet, 0);
+					}
+					break;
+				case SBL2:
+					if (currentRxMessage.messageId == 3)
+					{
+						packet.sensor_type = currentRxMessage.SensorID;
+						packet.data = currentRxMessage.params;
+						xQueueSendToBack(Queue_Process_Data, &packet, 0);
+					}
+					break;
+				case SBL3:
+					if (currentRxMessage.messageId == 3)
+					{
 						packet.sensor_type = currentRxMessage.SensorID;
 						packet.data = currentRxMessage.params;
 						xQueueSendToBack(Queue_Process_Data, &packet, 0);
