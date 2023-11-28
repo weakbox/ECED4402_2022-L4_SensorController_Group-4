@@ -7,6 +7,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "main.h"
 #include "User/L2/Comm_Datalink.h"
@@ -32,8 +33,8 @@ TimerHandle_t xTimer[1];
 int state = STARTSTATE; //Current state of controller
 char* Sensor_Data_Buffer;
 char SBL_ack = 0; //SBL1 sensor enabled
-char SBL2_ack = 0; //SBL1 sensor enabled
-char SBL3_ack = 0; //SBL1 sensor enabled
+char SBL2_ack = 0; //SBL2 sensor enabled
+char SBL3_ack = 0; //SBL3 sensor enabled
 char Depth_ack = 0;
 char Oil_ack = 0;
 
@@ -43,6 +44,14 @@ typedef struct DataPacket
 	int sensor_type;
 	int data;
 }	DataPacket_t;
+
+typedef struct Location
+{
+	int x;
+	int y;
+	int z;
+	uint8_t locationTrue; //Set when the location has been calculated
+};
 
 static void ResetMessageStruct(struct CommMessage* currentRxMessage){
 
@@ -65,7 +74,7 @@ void ack_wait()
 		case Controller:
 			break;
 		case SBL:
-			print_str("SBL1 sensor enabled!\r\n");
+			print_str("SBL sensor enabled!\r\n");
 			SBL_ack = 1;
 			break;
 		case Depth:
@@ -87,19 +96,57 @@ void ack_wait()
 	}
 }
 
-/*char * calculateLocation(uint32_t sbl_1, uint32_t sbl_2, uint32_t sbl_3, uint32_t depth)
+struct Location calculateLocation(uint32_t sbl_1, uint32_t sbl_2, uint32_t sbl_3, uint32_t depth)
 {
-	float xLoc;
-	float yLoc;
-	float zLoc = depth;
-	uint8_t surfacePressure = 1; //Atmosphere
-	uint16_t initialSpeed = 1450; //m/s
-	float avgSpeed;
-	avgSpeed = (depth *1.677 + surfacePressure) + initialSpeed;
-}*/
+	//Assume oil rig is a 100m x 100m square
+	struct Location sbl_1_pos;
+	struct Location sbl_2_pos;
+	struct Location sbl_3_pos;
+	struct Location Loc;
 
-/*
-void process(DataPacket_t packet)
+	sbl_1_pos.x = -50;
+	sbl_1_pos.y = 0;
+	sbl_2_pos.x = 50;
+	sbl_2_pos.y = 50;
+	sbl_3_pos.x = 50;
+	sbl_3_pos.y = -50;
+	float sbl_1_dist;
+	float sbl_2_dist;
+	float sbl_3_dist;
+
+	unsigned char variance = 50;
+	unsigned char precision = 10;
+
+	uint8_t surfacePressure = 1; //Atmosphere
+	uint16_t initialSpeed = 1450; //m/s speed at water surface
+	float avgSpeed;
+
+	avgSpeed = (depth * 1.677 * 10 + surfacePressure) + initialSpeed;
+	sbl_1_dist = avgSpeed*sbl_1/1000000; //Convert microsecond to second. Calculate meters
+	sbl_2_dist = avgSpeed*sbl_2/1000000;
+	sbl_3_dist = avgSpeed*sbl_3/1000000;
+
+	Loc.z = depth;
+	if ((sbl_1 <= sbl_2) && (sbl_1 <= sbl_3))
+	{
+		Loc.x = ((rand() % variance)/precision) + sbl_1_pos.x;
+		Loc.y = ((rand() % variance)/precision) + sbl_1_pos.y;
+	}
+	else if ((sbl_2 <= sbl_1) && (sbl_2 <= sbl_3))
+	{
+		Loc.x = ((rand() % variance)/precision) + sbl_2_pos.x;
+		Loc.y = ((rand() % variance)/precision) + sbl_2_pos.y;
+	}
+	else if ((sbl_3 <= sbl_1) && (sbl_3 <= sbl_1))
+	{
+		Loc.x = ((rand() % variance)/precision) + sbl_3_pos.x;
+		Loc.y = ((rand() % variance)/precision) + sbl_3_pos.y;
+	}
+	Loc.locationTrue = true;
+	return Loc;
+}
+
+struct Location process(DataPacket_t packet)
 {
 	static uint32_t sbl_1;
 	static uint32_t sbl_2;
@@ -109,6 +156,8 @@ void process(DataPacket_t packet)
 	static uint8_t sbl_2_rec = false;
 	static uint8_t sbl_3_rec = false;
 	static uint8_t depth_rec = false;
+
+	struct Location Loc;
 
 	switch (packet.sensor_type)
 	{
@@ -132,14 +181,19 @@ void process(DataPacket_t packet)
 
 	if (sbl_1_rec && sbl_2_rec && sbl_3_rec && depth_rec)
 	{
-		calculateLocation(sbl_1, sbl_2, sbl_3, depth);
+		Loc = calculateLocation(sbl_1, sbl_2, sbl_3, depth);
 		sbl_1_rec = false;
 		sbl_2_rec = false;
 		sbl_3_rec = false;
 		depth_rec = false;
 	}
+	else
+	{
+		Loc.locationTrue = false;
+	}
+	return Loc;
 }
-*/
+
 
 void disable_sensors()
 {
@@ -155,9 +209,11 @@ void disable_sensors()
  * Encodes sensor data based on the sensor type, allowing a maximum data output of 16383.
  *
  * The function encodes sensor data, considering the following sensor types:
- * - 01: SBL Sensor
- * - 10: Depth Sensor
- * - 11: Oil Sensor
+* -011: SBL1 Sensor
+* -100 : SBL2 Sensor
+* -101 : SBL3 Sensor
+* -110 : Depth Sensor
+* -100 : Oil Sensor
  *
  * Returns the encoded 16-bit value where the first two bits represent the sensor type,
  * and the remaining bits represent the sensor data. Returns 0 in case of invalid
@@ -165,15 +221,38 @@ void disable_sensors()
  */
 uint16_t compress_data(int sensor_type, int data)
 {
-	uint16_t comp = 0;
+	char dec_buffer[100];
+	uint32_t comp = 0;
 	if (data <= 16383)
 	{
 		if (sensor_type)
 		{
-			comp = (sensor_type - 1) << 14;
+			comp = (sensor_type) << 13;
 			comp |= data;
 		}
 	}
+	switch (sensor_type)
+	{
+	case SBL1:
+		sprintf(dec_buffer, "Compressed SBL1 Sensor Reading: %u\r\n", comp);
+		break;
+	case SBL2:
+		sprintf(dec_buffer, "Compressed SBL2 Sensor Reading: %u\r\n", comp);
+		break;
+	case SBL3:
+		sprintf(dec_buffer, "Compressed SBL3 Sensor Reading: %u\r\n", comp);
+		break;
+	case Depth:
+		sprintf(dec_buffer, "Compressed Depth Sensor Reading: %u\r\n", comp);
+		break;
+	case Oil:
+		sprintf(dec_buffer, "Compressed Oil Sensor Reading: %u\r\n", comp);
+		break;
+	default:
+		sprintf(dec_buffer, "Error compressing data. Was input too large?\r\n");
+		break;
+	}
+	print_str(dec_buffer);
 	return comp;
 }
 
@@ -185,49 +264,100 @@ uint16_t compress_data(int sensor_type, int data)
 */
 void decompress_data(uint16_t input)
 {
-	char dec_buffer[64];
-	int sensor_type = (input >> 14) + 1;
-	int data = input & 0x3FFF;
+	char dec_buffer[100];
+	int sensor_type = (input >> 13);
+	int data = input & 0x1FFF;
 
 	switch (sensor_type)
-	{
-	case 2:
-		sprintf(dec_buffer, "SBL Sensor Reading: %d\r\n", data);
-		break;
-	case 3:
-		sprintf(dec_buffer, "Depth Sensor Reading: %d\r\n", data);
-		break;
-	case 4:
-		sprintf(dec_buffer, "Oil Sensor Reading: %d\r\n", data);
-		break;
-	default:
-		sprintf(dec_buffer, "Error decompressing data. Was input too large?\r\n");
-		break;
-	}
+		{
+		case SBL1:
+			sprintf(dec_buffer, "Decompressed SBL1 Sensor Reading: %d\r\n", data);
+			break;
+		case SBL2:
+			sprintf(dec_buffer, "Decompressed SBL2 Sensor Reading: %d\r\n", data);
+			break;
+		case SBL3:
+			sprintf(dec_buffer, "Decompressed SBL3 Sensor Reading: %d\r\n", data);
+			break;
+		case Depth:
+			sprintf(dec_buffer, "Decompressed Depth Sensor Reading: %d\r\n", data);
+			break;
+		case Oil:
+			sprintf(dec_buffer, "Decompressed Oil Sensor Reading: %d\r\n", data);
+			break;
+		default:
+			sprintf(dec_buffer, "Error decompressing data. Was input too large?\r\n");
+			break;
+		}
 	print_str(dec_buffer);
 }
 
 // Processes the data obtained by the sensors and transfers it to the Host PC.
 // Note: The transfer to the Host PC in this situation is emulated via the use of the 'print_str' function.
 // Note: To minimize data transfer, we want to compress this string to be as short as possible.
-void ProcessSendDataTask(void *params)
+void ProcessSendDataTask(void* params)
 {
 	print_str("Data Processing and Sending Task\r\n");
-
+	char dec_buffer[100];
 	DataPacket_t packet;
 	Queue_Process_Data = xQueueCreate(16, sizeof(DataPacket_t));
 
+	struct Location Loc;
+	Loc.locationTrue = false;
+
 	do {
+
 		if (xQueueReceive(Queue_Process_Data, &packet, 0))
 		{
-			// Process data before sending!
-			/*if (packet.sensor_type != Oil)
-			{
-				process(packet);
-			}*/
-			decompress_data(compress_data(packet.sensor_type, packet.data));
+			switch (packet.sensor_type)
+				{
+			//Process location data from SBL and Depth only
+				case SBL1:
+				case SBL2:
+				case SBL3:
+				case Depth:
+					Loc = process(packet);
+					if (Loc.locationTrue)
+					{
+						sprintf(dec_buffer, "Location: x:%d, y:%d, z:%d\r\n", Loc.x, Loc.y, Loc.z);
+						print_str(dec_buffer);
+					}
+					break;
+				case Oil:
+					sprintf(dec_buffer, "Oil Sensor Reading: %d\r\n", packet.data);
+					print_str(dec_buffer);
+					break;
+				default:
+					sprintf(dec_buffer, "Error\r\n");
+					break;
+				}
+
+/*			switch (packet.sensor_type)
+				{
+				case SBL1:
+					sprintf(dec_buffer, "SBL1 Sensor Reading: %d\r\n", packet.data);
+					break;
+				case SBL2:
+					sprintf(dec_buffer, "SBL2 Sensor Reading: %d\r\n", packet.data);
+					break;
+				case SBL3:
+					sprintf(dec_buffer, "SBL3 Sensor Reading: %d\r\n", packet.data);
+					break;
+				case Depth:
+					sprintf(dec_buffer, "Depth Sensor Reading: %d\r\n", packet.data);
+					break;
+				case Oil:
+					sprintf(dec_buffer, "Oil Sensor Reading: %d\r\n", packet.data);
+					break;
+				default:
+					sprintf(dec_buffer, "Error decompressing data. Was input too large?\r\n");
+					break;
+				}*/
+
+				//decompress_data(compress_data(packet.sensor_type, packet.data));
 		}
-	} while(1);
+	vTaskDelay(10 / portTICK_RATE_MS);
+	} while (1);
 }
 
 /******************************************************************************
@@ -254,7 +384,9 @@ void SensorControllerTask(void *params)
 				print_str("Command received from Host PC: START\r\n");
 				state = ENABLESTATE;
 				send_sensorEnable_message(SBL, TimerDefaultPeriod);
+				vTaskDelay(100 / portTICK_RATE_MS);
 				send_sensorEnable_message(Depth, TimerDefaultPeriod);
+				vTaskDelay(100 / portTICK_RATE_MS);
 				send_sensorEnable_message(Oil, TimerDefaultPeriod);
 				xTimerStart( xTimer[0], 0 ); //Start timer to check if sensors are enabled
 			}
@@ -271,67 +403,70 @@ void SensorControllerTask(void *params)
 				state = STARTSTATE;
 				break;
 			}
-
-			// Receive data from Sensor Platform_RX_Task
-			if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
+			for (int i = 0; i < 5; i++)
 			{
-				switch (currentRxMessage.SensorID)
+				// Receive data from Sensor Platform_RX_Task
+				if (xQueueReceive(Queue_Sensor_Data, &currentRxMessage, 0))
 				{
-				case None:
-					break;
-				case Controller:
-					if (currentRxMessage.messageId == 1)
+					switch (currentRxMessage.SensorID)
 					{
-						print_str("Sensor disabled!\r\n");
+					case None:
+						break;
+					case Controller:
+						if (currentRxMessage.messageId == 1)
+						{
+							print_str("Sensor disabled!\r\n");
+						}
+						break;
+					case SBL1:
+						if (currentRxMessage.messageId == 3)
+						{
+							//Only reads the first SBL so far
+							packet.sensor_type = currentRxMessage.SensorID;
+							packet.data = currentRxMessage.params;
+							xQueueSendToBack(Queue_Process_Data, &packet, 0);
+						}
+						break;
+					case SBL2:
+						if (currentRxMessage.messageId == 3)
+						{
+							packet.sensor_type = currentRxMessage.SensorID;
+							packet.data = currentRxMessage.params;
+							xQueueSendToBack(Queue_Process_Data, &packet, 0);
+						}
+						break;
+					case SBL3:
+						if (currentRxMessage.messageId == 3)
+						{
+							packet.sensor_type = currentRxMessage.SensorID;
+							packet.data = currentRxMessage.params;
+							xQueueSendToBack(Queue_Process_Data, &packet, 0);
+						}
+						break;
+					case Depth:
+						if (currentRxMessage.messageId == 3)
+						{
+							packet.sensor_type = currentRxMessage.SensorID;
+							packet.data = currentRxMessage.params;
+							xQueueSendToBack(Queue_Process_Data, &packet, 0);
+						}
+						break;
+					case Oil:
+						if (currentRxMessage.messageId == 3)
+						{
+							packet.sensor_type = currentRxMessage.SensorID;
+							packet.data = currentRxMessage.params;
+							xQueueSendToBack(Queue_Process_Data, &packet, 0);
+						}
+						break;
 					}
-					break;
-				case SBL1:
-					if (currentRxMessage.messageId == 3)
-					{
-						//Only reads the first SBL so far
-						packet.sensor_type = currentRxMessage.SensorID;
-						packet.data = currentRxMessage.params;
-						xQueueSendToBack(Queue_Process_Data, &packet, 0);
-					}
-					break;
-				case SBL2:
-					if (currentRxMessage.messageId == 3)
-					{
-						packet.sensor_type = currentRxMessage.SensorID;
-						packet.data = currentRxMessage.params;
-						xQueueSendToBack(Queue_Process_Data, &packet, 0);
-					}
-					break;
-				case SBL3:
-					if (currentRxMessage.messageId == 3)
-					{
-						packet.sensor_type = currentRxMessage.SensorID;
-						packet.data = currentRxMessage.params;
-						xQueueSendToBack(Queue_Process_Data, &packet, 0);
-					}
-					break;
-				case Depth:
-					if (currentRxMessage.messageId == 3)
-					{
-						packet.sensor_type = currentRxMessage.SensorID;
-						packet.data = currentRxMessage.params;
-						xQueueSendToBack(Queue_Process_Data, &packet, 0);
-					}
-					break;
-				case Oil:
-					if (currentRxMessage.messageId == 3)
-					{
-						packet.sensor_type = currentRxMessage.SensorID;
-						packet.data = currentRxMessage.params;
-						xQueueSendToBack(Queue_Process_Data, &packet, 0);
-					}
-					break;
+					ResetMessageStruct(&currentRxMessage);
 				}
-				ResetMessageStruct(&currentRxMessage);
 			}
 		}
 		//Reset so new command can be received
 		HostPC_Command = 0;
+		vTaskDelay(1000 / portTICK_RATE_MS);
 	} while(1);
 }
 

@@ -25,28 +25,16 @@ This is a software callback function.
 void RunDepthSensor(TimerHandle_t xTimer)
 {
 	static uint32_t depth = StartDepth;
-	static uint8_t going_down = true;
-
-	// print_str("Polling Depth Sensor...\r\n");
-
-	// Calculate the movement of the robot.
-	if (going_down)
-	{
+	static uint8_t down = true;
+	if (down)
 		depth += RobotSpeed;
-	}
-	else // Going up
-	{
+	else
 		depth -= RobotSpeed;
-	}
 
-	if (depth >= MaxDepth)
-	{
-		going_down = false;
-	}
-	if (depth <= StartDepth)
-	{
-		going_down = true;
-	}
+	if (depth == MaxDepth)
+		down = 0;
+	if (depth == StartDepth)
+		down = 1;
 
 	send_sensorData_message(Depth, depth);
 }
